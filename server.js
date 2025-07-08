@@ -28,6 +28,8 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', true);
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
