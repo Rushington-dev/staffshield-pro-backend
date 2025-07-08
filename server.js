@@ -115,3 +115,5 @@ async function startServer() {
 }
 
 startServer();
+
+// NOTE: The extra app.listen() that was at the end of the file has been removed.
