@@ -558,3 +558,8 @@ async function startServer() {
 }
 
 startServer();
+
+// This starts the server and tells it to listen for visitors
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
