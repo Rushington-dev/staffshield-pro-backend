@@ -8,6 +8,7 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+const { createTables } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const jobRoutes = require('./routes/jobs');
@@ -112,9 +113,16 @@ app.use('/*catchall', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`StaffShield Pro API server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
+  
+  try {
+    await createTables();
+    console.log('Database initialization completed');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+  }
 });
 
 module.exports = { app, server, io };
