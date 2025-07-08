@@ -8,24 +8,24 @@ router.post('/', authenticateToken, requireRole(['client']), async (req, res) =>
   try {
     const {
       title, description, locationAddress, locationLat, locationLng,
-      startDate, endDate, hourlyRate, agentsNeeded, requiredCertifications,
+      startDate, endDate, agentsNeeded, requiredCertifications,
       specialRequirements, urgencyLevel, equipmentProvided, uniformRequired, vehicleRequired
     } = req.body;
 
-    if (!title || !description || !locationAddress || !startDate || !endDate || !hourlyRate || !agentsNeeded) {
+    if (!title || !description || !locationAddress || !startDate || !endDate || !agentsNeeded) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await pool.query(
       `INSERT INTO jobs (
         client_id, title, description, location_address, location_lat, location_lng,
-        start_date, end_date, hourly_rate, agents_needed, required_certifications,
+        start_date, end_date, agents_needed, required_certifications,
         special_requirements, urgency_level, equipment_provided, uniform_required, vehicle_required
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *`,
       [
         req.user.id, title, description, locationAddress, locationLat, locationLng,
-        startDate, endDate, hourlyRate, agentsNeeded, requiredCertifications,
+        startDate, endDate, agentsNeeded, requiredCertifications,
         specialRequirements, urgencyLevel, equipmentProvided, uniformRequired, vehicleRequired
       ]
     );
@@ -173,10 +173,14 @@ router.post('/:id/assign-ppo', authenticateToken, requireRole(['client']), async
 router.post('/:id/assign-agents', authenticateToken, requireRole(['ppo']), async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { agentIds } = req.body;
+    const { agentIds, hourlyRate } = req.body;
 
     if (!Array.isArray(agentIds) || agentIds.length === 0) {
       return res.status(400).json({ error: 'Agent IDs array required' });
+    }
+
+    if (!hourlyRate || hourlyRate <= 0) {
+      return res.status(400).json({ error: 'Valid hourly rate required' });
     }
 
     const jobResult = await pool.query(
@@ -202,8 +206,8 @@ router.post('/:id/assign-agents', authenticateToken, requireRole(['ppo']), async
 
       for (const agentId of agentIds) {
         await client.query(
-          'INSERT INTO job_assignments (job_id, agent_id) VALUES ($1, $2)',
-          [jobId, agentId]
+          'INSERT INTO job_assignments (job_id, agent_id, hourly_rate) VALUES ($1, $2, $3)',
+          [jobId, agentId, hourlyRate]
         );
       }
 
@@ -213,7 +217,7 @@ router.post('/:id/assign-agents', authenticateToken, requireRole(['ppo']), async
       );
 
       await client.query('COMMIT');
-      res.json({ message: 'Agents assigned successfully' });
+      res.json({ message: 'Agents assigned successfully with pricing' });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
